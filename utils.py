@@ -10,6 +10,8 @@ DEFAULT_DEBUG_ENABLE_FILE = "is_debug_enabled"
 LOGS_DIR = "logs"
 
 loggers = {}
+
+
 def getlogger(ext):
     global loggers
     if ext not in loggers:
@@ -24,8 +26,10 @@ def getlogger(ext):
 
     return loggers[ext]
 
+
 def debug_force(msg):
     debug(msg, 'force')
+
 
 def debug(msg, ext=None):
     if not ext:
@@ -34,10 +38,12 @@ def debug(msg, ext=None):
         logger = getlogger(ext)
         logger.debug(msg)
 
+
 def set_default_debug(is_enabled):
     f = open(path_join(LOGS_DIR, DEFAULT_DEBUG_ENABLE_FILE), 'w')
     f.write(str(int(is_enabled)))
     f.close()
+
 
 def read_is_debug_enabled():
     f = open(path_join(LOGS_DIR, DEFAULT_DEBUG_ENABLE_FILE))
@@ -45,9 +51,10 @@ def read_is_debug_enabled():
     f.close()
     return is_enabled
 
+
 class Debuggable(object):
     def __init__(self):
-        self.debug_enabled = _read_is_debug_enabled()
+        self.debug_enabled = read_is_debug_enabled()
         self.debug_name = "default"
 
     def debug(self, msg, ext=None):
@@ -58,6 +65,7 @@ class Debuggable(object):
     def print_it(self, msg):
         if self.debug_enabled:
             print(msg)
+
 
 def fleet_needed(pw, dest):
     debug_force("Fleet_needed for %d (%d)" % (dest.PlanetID(), dest.Owner()))
@@ -70,7 +78,7 @@ def fleet_needed(pw, dest):
 
     in_n_turns = None
     my_fleet_on_way = False
-    #prev_fleet = None
+#    prev_fleet = None
     for fleet in all_fleets:
         fleet_num = fleet.NumShips()
         debug_force("Fleet %d -> %d (%d) with %d ships" % (fleet.SourcePlanet(),
@@ -100,6 +108,7 @@ def fleet_needed(pw, dest):
     debug_force("Force of dest %d = %d (+20%%)" % (dest.PlanetID(), force))
     return -force if force < 0 else 0, in_n_turns
 
+
 def print_server_io(map_data):
     i = 0
     k = True
@@ -114,12 +123,14 @@ def print_server_io(map_data):
         i += 1
         debug(line, 'server-io')
 
+
 def main_util(bot_class):
     try:
         debug("Let's game begin!")
         run(bot_class)
     except KeyboardInterrupt:
-        print 'ctrl-c, leaving ...'
+        print('ctrl-c, leaving ...')
+
 
 def count_time_take(f):
     @wraps(f)
@@ -135,17 +146,18 @@ def count_time_take(f):
             return res, time_take
     return wrapper
 
+
 def run(bot_class):
     map_data = ''
     bot = bot_class()
     i = 0
-    while(True):
-        current_line = raw_input()
+    while True:
+        current_line = input()
         if len(current_line) >= 2 and current_line.startswith("go"):
             try:
                 i += 1
                 bot.load_turn_finish(map_data)
-            except Exception, e:
+            except Exception as e:
                 debug("Exception: %s" % e, 'error')
             map_data = ''
         else:
