@@ -144,4 +144,151 @@ class PlanetWars(Debuggable):
         self.do_turn()
         self.finish_turn()
 
-    
+    def parse_game_state(self):
+        self.planets = []
+        self.fleets = []
+        planet_id = 0
+
+        for line in self.game_state.split("\n"):
+            line = line.split("#")[0] #remove comments
+            tokens = line.split(" ")
+            if len(tokens) == 1:
+                continue
+            if tokens[0] == "P":
+                if len(tokens) != 6:
+                    raise BadState("Planet line is wrong")
+                p = Planet(planet_id,  # The ID of this planet
+                           int(tokens[3]),  # Owner
+                           int(tokens[4]),  # Num ships
+                           int(tokens[5]),  # Growth rate
+                           float(tokens[1]),  # X
+                           float(tokens[2]))  # Y
+                planet_id += 1
+                self.planets.append(p)
+            elif tokens[0] == "F":
+                if len(tokens) != 7:
+                    raise BadState("Fleet line is wrong")
+                f = Fleet(int(tokens[1]),  # Owner
+                          int(tokens[2]),  # Num ships
+                          int(tokens[3]),  # Source
+                          int(tokens[4]),  # Destination
+                          int(tokens[5]),  # Total trip length
+                          int(tokens[6]))  # Turns remaining
+                self.fleets.append(f)
+            else:
+                raise BadState("Unsupported line came")
+        self.cache_immutable_info()
+
+    def finish_turn(self):
+        stdout.write("go\n")
+        stdout.flush()
+
+    def issue_and_update(self, src, dest, ships):
+        p = self.get_planet(src)
+        total = p.num_ships
+        if total < ships:
+            self.debug("Bad order %d -> %d with %d, but have %d. Aborting" % (src, dest, ships, total))
+            return
+        self.debug("Sending %d ships from %d to %d" % (ships, src, dest))
+        self.issue_order(src, dest, ships)
+        #Updating planet
+        p.num_ships = total - ships
+        #Making fleet
+        d = self.distance(src, dest)
+        new_fleet = Fleet(1, ships, src, dest, d, d)
+        self.fleets.append(new_fleet)
+
+class Planet(object):
+    def __init__(self, planet_id, owner, num_ships, growth_rate, x, y):
+        self.id = planet_id
+        self.owner = owner
+        self.num_ships = num_ships
+        self.growth_rate = growth_rate
+        self.x = x
+        self.y = y
+
+    def add_ships(self, amount):
+        self.num_ships += amount
+
+    def remove_ships(self, amount):
+        self.num_ships -= amount
+
+    def __repr__(self):
+        return self.__str__()
+
+    def __str__(self):
+        return self.repr_for()
+
+    def repr_for_enemy(self):
+        return self.repr_for(2)
+
+    def repr_for(self, who=1):
+        return "P %f %f %d %d %d\n" % (self.x, self.y, pov(self.owner, who), self.num_ships, self.growth_rate)
+
+    def __eq__(self, other):
+        return self.id == other.id
+
+
+class Bot(PlanetWars):
+    def __init__(self):
+        super(Bot, self).__init__()
+        self.debug_name = "bot"
+        self.ships_key_getter = lambda a: a.num_ships
+
+    def do_turn(self):
+        pass
+
+    def simple_estimate(self, src, dst):
+        need = float(dst.num_ships)
+        owner = dst.owner
+        if owner > 1:
+            need += self.distance(src.id, dst.id) * dst.growth_rate
+
+        enemy_fleet_count = [fleet.num_ships for fleet in self.enemy_fleets if fleet.destination_planet == dst.id]
+        need += sum(enemy_fleet_count)
+
+        my_fleet = [fleet for fleet in self.my_fleets if fleet.destination_planet == dst.id]
+        my_fleet.sort(key=lambda fleet: fleet.turns_remaining)
+        for fleet in my_fleet:
+            if owner > 1:
+                need += dst.growth_rate + fleet.turns_remaining
+            need -= fleet.num_ships
+
+            if need <= 0:
+                break
+
+        return int(math.ceil(need * 1.10))
+
+    def all_other_planets(self, src):
+        self.debug("all_other_tables")
+        planets = self.not_my_planets + []
+        planets.sort(key=self.ships_key_getter)
+        self.debug("all other planets %s" % [s.id for s in planets])
+        return planets
+
+    @property
+    def my_sorted_planets(self):
+        planets = self.my_planets + []
+        planets.sort(key=self.ships_key_getter, reverse=True)
+        self.debug("my planets %s" % [s.id for s in planets])
+        return planets
+
+    def attack(self, choose_targets, estimate, give_portion=0.66):
+        self.debug("Attacking.")
+        for src in self.my_sorted_planets:
+            init_was = src.num_ships
+            can_give = float(init_was * give_portion)
+            self.debug("My planet %d can give %d ships" % (src.id, can_give))
+            for dest in choose_targets(src):
+                ships_to_send = estimate(src, dest)
+                if ships_to_send > 0 and can_give >= ships_to_send:
+                    self.debug("Sending %d ships to %d planet" % (ships_to_send, dest.id))
+                    self.issue_and_update(src.id, dest.id, ships_to_send)
+                    can_give -= ships_to_send
+            self.debug("From %d in total sent %d ships" % (init_was - src.num_ships, src.id))
+
+class EndOfTheGame(Exception):
+    pass
+
+class BadState(Exception):
+    pass
