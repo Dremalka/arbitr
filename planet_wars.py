@@ -120,7 +120,7 @@ class PlanetWars(Debuggable):
 
     def is_game_over(self, max_turns):
         '''check for end of the game'''
-        if not(all[self.is_alive(player) for player in range(1,3)]) or self.turn > max_turns:
+        if not(all(self.is_alive(player) for player in range(1, 3))) or self.turn > max_turns:
             raise EndOfTheGame()
 
     @property
@@ -259,8 +259,8 @@ class Bot(PlanetWars):
 
         return int(math.ceil(need * 1.10))
 
-    def all_other_planets(self, src):
-        self.debug("all_other_tables")
+    def all_other_planets(self):
+        self.debug("all_other_planets")
         planets = self.not_my_planets + []
         planets.sort(key=self.ships_key_getter)
         self.debug("all other planets %s" % [s.id for s in planets])
@@ -281,7 +281,7 @@ class Bot(PlanetWars):
             self.debug("My planet %d can give %d ships" % (src.id, can_give))
             for dest in choose_targets(src):
                 ships_to_send = estimate(src, dest)
-                if ships_to_send > 0 and can_give >= ships_to_send:
+                if 0 < ships_to_send <= can_give:
                     self.debug("Sending %d ships to %d planet" % (ships_to_send, dest.id))
                     self.issue_and_update(src.id, dest.id, ships_to_send)
                     can_give -= ships_to_send
