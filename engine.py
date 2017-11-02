@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import sys
 import os
 import os.path
@@ -53,7 +54,7 @@ class Engine(Debuggable):
                 self.pw.planets[src].num_ships -= num_ships
 
     def _advancement(self):
-        for fl in self.pw.planets:
+        for fl in self.pw.fleets:
             fl.turns_remaining -= 1
         for pl in self.pw.planets:
             if pl.owner > 0:
@@ -122,11 +123,11 @@ class Engine(Debuggable):
             return
 
     def communicate_enemy_bot(self):
-        self.stdin.write(self.pw.repr_for_enemy() + "go\n")
+        self.stdin.write((self.pw.repr_for_enemy() + "go\n").encode())
         self.stdin.flush()
         enemy_orders = []
         while True:
-            line = self.stdout.readline().replace("\n", "")
+            line = self.stdout.readline().decode().replace("\n", "")
             self.debug("> %s" % line)
             self.print_it("> %s" % line)
             if line.startswith("go"):
@@ -182,7 +183,7 @@ class Runner(object):
         maps = [self.mapp]
         if self.mapp == "ALL":
             maps = sorted(os.listdir(MAPS_DIR), key=lambda p: int(p[3:-4]))
-            debug_enabled = False
+            debug_enabled = True
 
         set_default_debug(debug_enabled)
 
@@ -211,8 +212,7 @@ if __name__ == "__main__":
         print("No Psyco")
         pass
 
-    print
-    "Lets game begin!"
+    print("Lets game begin!")
     from my_bots import MyBot6 as bot_class
     time_take = main(bot_class)
     print("Game take %d minutes %d seconds" % (time_take / 60, time_take % 60))

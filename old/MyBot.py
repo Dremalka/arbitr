@@ -1,6 +1,4 @@
-#!/usr/bin/env python
-#
-
+# -*- coding: utf-8 -*-
 """
 // The DoTurn function is where your code goes. The PlanetWars object contains
 // the state of the game, including information about all planets and fleets
@@ -37,7 +35,7 @@ def main():
 
     try:
         while(True):
-            current_line = raw_input()
+            current_line = input()
             #debug("-> %s" % current_line, 'server')
             if len(current_line) >= 2 and current_line.startswith("go"):
                 debugger.debug("# %d" % turn)
@@ -49,7 +47,7 @@ def main():
                 map_data = ''
             else:
                 map_data += current_line + '\n'
-    except Exception, e:
+    except Exception as e:
         debugger.debug(e, "error")
     debugger.debug("The End!")
 
@@ -115,4 +113,4 @@ if __name__ == '__main__':
     debugger.debug("Let's game begin!!")
     main()
   except KeyboardInterrupt:
-    print 'ctrl-c, leaving ...'
+    print('ctrl-c, leaving ...')

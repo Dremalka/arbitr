@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from utils import Debuggable
 
 from math import ceil, sqrt
